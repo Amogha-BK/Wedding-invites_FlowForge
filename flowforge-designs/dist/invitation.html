@@ -56,6 +56,14 @@ footer{text-align:center;padding:45px 20px 110px;font-size:14px}footer strong{fo
 .open .seal{opacity:0;pointer-events:none}#music{position:fixed;top:15px;right:15px;z-index:20;background:var(--paper)}
 @media(max-width:480px){section{padding:55px 24px}h2{font-size:30px}.tiles{grid-template-columns:1fr}.photos img{height:190px}.gate:after{inset:22px 12px}.row{gap:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
+
+.event-card,.tile{background:color-mix(in srgb,var(--paper),white 5%)}
+input:not([type=radio]):not([type=checkbox]),select,textarea{background:var(--paper);color:var(--ink)}
+.message{background:color-mix(in srgb,var(--paper),black 8%)}
+.dark-invite .muted{color:#c0b9a7}.dark-invite nav,.dark-invite #music{background:var(--paper)}
+.dark-invite .gate{background-color:var(--paper)}
+.dark-invite .eyebrow{color:#c5b58b}.dark-invite .message{color:#eee6d5}
+.flowforge-credit{display:block;text-align:center;margin-top:22px;font:11px Arial,sans-serif;letter-spacing:.4px}
 </style>
 </head>
 <body class="locked">
@@ -102,7 +110,7 @@ footer{text-align:center;padding:45px 20px 110px;font-size:14px}footer strong{fo
  </form>
  <div id="reply" hidden><h3>Your RSVP message</h3><pre class="message" id="message"></pre><a id="send" class="btn primary" target="_blank" rel="noopener noreferrer" hidden>Open WhatsApp to send</a><p class="muted" id="replyHint"></p></div>
  </section>
- <footer><p>With love and warm wishes</p><strong id="signoff"></strong><p id="footerFamilies"></p></footer>
+ <footer><p>With love and warm wishes</p><strong id="signoff"></strong><p id="footerFamilies"></p><a class="flowforge-credit" href="https://flowforge-wedding-designs.localsmile1.chatgpt.site">Made with love · FlowForge.designs ↗</a></footer>
 </main>
 <nav id="nav" aria-label="Invitation navigation" hidden><a href="#home">HOME</a><a href="#events">EVENTS</a><a href="#stay">STAY</a><a href="#rsvp">RSVP</a></nav>
 <button id="music" class="btn" hidden aria-pressed="false">Play music</button>
@@ -140,6 +148,47 @@ const WEDDING = {
   {name:'Reception',start:'2027-02-13T20:30:00+05:30',end:'2027-02-13T23:30:00+05:30',venue:'Gulmohar Haveli — Durbar Hall',address:'Civil Lines, Jaipur, Rajasthan',map:'',dress:'Indian formal / evening wear',description:'An evening of good food, warm wishes, and a beautiful new beginning.',schedule:[['8:30 PM','Welcome the newlyweds'],['9:00 PM','Dinner & celebrations']]}
  ]
 };
+
+// Exported invitations embed their data here; shared invitations read the URL fragment.
+const EMBEDDED_CONFIG = /* PERSONALIZED_CONFIG */ null;
+let personalized = EMBEDDED_CONFIG;
+if (!personalized && location.hash.length > 1 && location.hash.length < 30000) {
+ try {
+  const packed = location.hash.slice(1).replace(/-/g,'+').replace(/_/g,'/');
+  personalized = JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(packed),c=>c.charCodeAt(0))));
+ } catch { document.addEventListener('DOMContentLoaded',()=>{const p=document.createElement('p');p.textContent='This invitation link is incomplete. Showing a sample invitation; please ask the couple for their latest link.';p.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;background:#fff4d4;padding:12px;text-align:center;font:13px Arial;color:#732c39';document.body.append(p);}); }
+}
+if (personalized && typeof personalized === 'object' && !Array.isArray(personalized)) {
+ const str=(key,max=120)=>typeof personalized[key]==='string'?personalized[key].slice(0,max).trim():'';
+ if (/^#[0-9a-f]{6}$/i.test(str('accent'))) document.documentElement.style.setProperty('--wine',str('accent'));
+ if (/^#[0-9a-f]{6}$/i.test(str('paper'))) {
+  const paper=str('paper');document.documentElement.style.setProperty('--paper',paper);
+  const rgb=paper.slice(1).match(/../g).map(x=>parseInt(x,16));
+  if(rgb.reduce((a,b)=>a+b,0)<390){document.documentElement.style.setProperty('--ink','#eee6d5');document.documentElement.style.setProperty('--line','#ac97605c');document.documentElement.classList.add('dark-invite');}
+ }
+ if(str('bride')&&str('groom')) {
+  WEDDING.bride=str('bride',60);WEDDING.groom=str('groom',60);
+  WEDDING.initials=WEDDING.bride.charAt(0)+' & '+WEDDING.groom.charAt(0);
+  WEDDING.brideParents='her loving family';WEDDING.groomParents='his loving family';
+  WEDDING.familyNames='Together with our families';
+  WEDDING.blessing='With love, joy and the blessings of our families';
+  WEDDING.city=str('city',80);WEDDING.hashtag='#'+WEDDING.bride.split(' ')[0]+'And'+WEDDING.groom.split(' ')[0];
+  WEDDING.story=str('story',1200)||'Our favourite chapter is about to begin. With full hearts and our families by our side, we invite you to join us as we celebrate our wedding.';
+  const number=str('phone',25).replace(/\D/g,'');
+  if(/^[1-9]\d{7,14}$/.test(number)){WEDDING.rsvpWhatsApp=number;WEDDING.contactPhone=number;}
+  WEDDING.contactName='The wedding hosts';WEDDING.stay='Please contact the hosts for accommodation recommendations and room availability.';
+  WEDDING.travel='Please use the location links below for directions to the wedding venue. Contact the hosts if you need help planning your arrival.';
+  const date=str('date',10), time=str('time',5);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(date)&&/^\d{2}:\d{2}$/.test(time)&&Number.isFinite(new Date(date+'T'+time+':00+05:30').getTime())){
+   WEDDING.weddingDate=date+'T'+time+':00+05:30';
+   WEDDING.replyBy=new Date(new Date(WEDDING.weddingDate).getTime()-7*86400000).toISOString();
+   const receptionStart=new Date(new Date(WEDDING.weddingDate).getTime()+2.5*3600000).toISOString();
+   const event=(name,start,duration,dress,description)=>({name,start,end:new Date(new Date(start).getTime()+duration*3600000).toISOString(),venue:str('venue',120),address:str('address',200),map:'',dress,description,schedule:[]});
+   WEDDING.events=[event('The Wedding',WEDDING.weddingDate,2,'Celebration attire','Join us as we begin our forever, surrounded by the people we love.'),event('Reception',receptionStart,3,'Evening celebration wear','Celebrate the newlyweds with dinner, warm wishes and an evening to remember.')];
+  }
+ }
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date = s => new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Kolkata'});
@@ -148,10 +197,10 @@ const validPhone = s => /^[1-9]\d{7,14}$/.test(s);
 const text = (id,value) => {$(id).textContent=value;};
 document.title = `${WEDDING.bride} & ${WEDDING.groom} | Wedding Invitation`;
 text('open',WEDDING.initials);text('bride',WEDDING.bride);text('groom',WEDDING.groom);
-text('blessing',WEDDING.blessing);text('intro',WEDDING.invitation);
+text('blessing',WEDDING.blessing);document.querySelector('.seal p').textContent='WITH LOVE & BLESSINGS';text('intro',WEDDING.invitation);
 const invited = new URLSearchParams(location.search).get('to');
 text('welcome',invited ? `Dear ${invited.slice(0,100)}, you are invited` : 'An invitation, with love');
-$('families').innerHTML=`<p>Daughter of ${esc(WEDDING.brideParents)}</p><p>&</p><p>Son of ${esc(WEDDING.groomParents)}</p>`;
+$('families').textContent='Together with our families, we invite you to join our celebration.';
 text('date',date(WEDDING.weddingDate));text('city',WEDDING.city);text('hashtag',WEDDING.hashtag);
 text('storyText',WEDDING.story);text('stayText',WEDDING.stay);text('travelText',WEDDING.travel);text('gifts',WEDDING.gifts);
 text('deadline',`Kindly reply by ${date(WEDDING.replyBy)}`);
@@ -182,7 +231,7 @@ WEDDING.events.forEach((e,i)=>{
 function downloadCalendar(e,i){
  const utc=s=>new Date(s).toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
  const clean=s=>String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\r/g,'');
- const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Shubh Milan//Wedding//EN','BEGIN:VEVENT',`UID:${new Date(e.start).getTime()}-${i}-${encodeURIComponent(WEDDING.initials)}@shubhmilan.example`,`DTSTAMP:${utc(new Date())}`,`DTSTART:${utc(e.start)}`,`DTEND:${utc(e.end)}`,`SUMMARY:${clean(e.name+' — '+WEDDING.bride+' & '+WEDDING.groom)}`,`LOCATION:${clean(e.venue+', '+e.address)}`,'END:VEVENT','END:VCALENDAR'];
+ const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FlowForge.designs//Wedding//EN','BEGIN:VEVENT',`UID:${new Date(e.start).getTime()}-${i}-${encodeURIComponent(WEDDING.initials)}@shubhmilan.example`,`DTSTAMP:${utc(new Date())}`,`DTSTART:${utc(e.start)}`,`DTEND:${utc(e.end)}`,`SUMMARY:${clean(e.name+' — '+WEDDING.bride+' & '+WEDDING.groom)}`,`LOCATION:${clean(e.venue+', '+e.address)}`,'END:VEVENT','END:VCALENDAR'];
  const encoder=new TextEncoder();const folded=lines.map(line=>{let out='',part='';for(const c of line){if(encoder.encode(part+c).length>73){out+=part+'\r\n';part=' ';}part+=c;}return out+part;}).join('\r\n')+'\r\n';
  const url=URL.createObjectURL(new Blob([folded],{type:'text/calendar;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=`celebration-${i+1}.ics`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
