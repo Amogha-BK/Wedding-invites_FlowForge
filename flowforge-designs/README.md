@@ -27,3 +27,7 @@ The URL fragment includes the invitation details. Anyone with the link can read 
 - `serve.mjs`: local HTTP server
 
 The original workspace `index.html` is preserved. The live site uses `dist/`.
+
+## Verification
+
+`npm run check` checks JavaScript syntax. For the browser smoke test, run `npm install`, start the local server, then run `npm test`. The test uses Google Chrome at its standard Windows installation path; update `verify.mjs` if your browser is installed elsewhere.
